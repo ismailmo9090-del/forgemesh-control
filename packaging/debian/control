@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: ForgeMesh contributors <maintainers@forgemesh.invalid>
 Homepage: https://github.com/ismailmo9090-del/forgemesh-control
 Package: forgemesh-control
-Version: 0.1.0
+Version: 0.1.1
 Architecture: all
 Depends: python3 (>= 3.11), python3-venv, python3-pip, git, curl, xdg-utils
 Recommends: chromium | google-chrome-stable | chromium-browser

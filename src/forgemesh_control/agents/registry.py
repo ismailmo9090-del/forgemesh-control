@@ -315,7 +315,10 @@ class CentralAgentRegistry:
             models = await adapter.list_models()
             functional_result: dict[str, Any] = {
                 "attempted": False,
-                "detail": "Functional check skipped by request.",
+                "detail": (
+                    "Installed and executable; no functional prompt has run for the "
+                    "current account yet. Use 'Check version & verify' to test it."
+                ),
             }
             if functional:
                 check = getattr(adapter, "functional_check", None)
@@ -628,9 +631,22 @@ class CentralAgentRegistry:
         def requires_sign_in(item: dict[str, Any]) -> bool:
             if item["auth_status"] != "unauthenticated":
                 return False
-            # A row verified before this flag existed defaults to the strict
-            # reading, so the dashboard never hides a real sign-in need.
-            return bool(item["metadata"].get("auth_required_for_use", True))
+            required = item["metadata"].get("auth_required_for_use")
+            if required is None:
+                # Detection alone stores no capability record. Ask the adapter
+                # rather than defaulting to "yes": OpenCode runs free models
+                # while signed out, and a false blocker is its own bug.
+                path = item.get("path") or ""
+                if path:
+                    try:
+                        required = self._adapter(
+                            item["kind"], path
+                        ).auth_support().get("required_for_basic_use", True)
+                    except Exception:  # noqa: BLE001 - verification stays strict
+                        required = True
+                else:
+                    required = True
+            return bool(required)
 
         unsigned = [k for k, item in by_kind.items() if item["auth_status"] == "unauthenticated"]
         auth_needed = [k for k in unsigned if requires_sign_in(by_kind[k])]

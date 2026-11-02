@@ -133,6 +133,58 @@ async def test_opencode_takes_over_when_qoder_is_unavailable(tmp_path: Path) -> 
     assert "signed_out" in (result.attempts[0].detail or "")
 
 
+async def test_a_limited_qoder_is_still_attempted(tmp_path: Path) -> None:
+    # A post-login status check skips the functional prompt and records
+    # "limited". The CLI is installed and executable, so the brain must try it
+    # instead of refusing with no answer.
+    qoder = FakeAdapter(_run(True, "brief from qoder"))
+    opencode = FakeAdapter(RuntimeError("must not run"))
+    registry = FakeRegistry(
+        {
+            "qoder": _info(
+                "qoder",
+                availability="limited",
+                auth_status="authenticated",
+                last_error="Functional check skipped by request.",
+            ),
+            "opencode": _info("opencode", availability="limited", auth_status="unknown"),
+        },
+        {"qoder": qoder, "opencode": opencode},
+    )
+    result = await _service(tmp_path, registry).run("write a brief", purpose="council")
+    assert result.ok is True
+    assert result.kind == "qoder"
+    assert result.text == "brief from qoder"
+    assert opencode.calls == []
+
+
+async def test_limited_brain_agents_fall_back_with_the_cli_error(tmp_path: Path) -> None:
+    qoder = FakeAdapter(_run(False, "", error="usage limit reached, try again later"))
+    opencode = FakeAdapter(_run(True, "from opencode"))
+    registry = FakeRegistry(
+        {
+            "qoder": _info(
+                "qoder",
+                availability="limited",
+                auth_status="authenticated",
+                last_error="Functional check skipped by request.",
+            ),
+            "opencode": _info(
+                "opencode",
+                availability="limited",
+                auth_status="unknown",
+                last_error="Functional check skipped by request.",
+            ),
+        },
+        {"qoder": qoder, "opencode": opencode},
+    )
+    result = await _service(tmp_path, registry).run("write a brief", purpose="council")
+    assert result.ok is True
+    assert result.kind == "opencode"
+    assert [row.kind for row in result.attempts] == ["qoder", "opencode"]
+    assert "usage limit" in (result.attempts[0].detail or "")
+
+
 async def test_both_fail_reports_both_attempts_without_inventing_text(tmp_path: Path) -> None:
     qoder = FakeAdapter(RuntimeError("qoder crashed"))
     opencode = FakeAdapter(_run(False, "", error="opencode exited 1: no model"))

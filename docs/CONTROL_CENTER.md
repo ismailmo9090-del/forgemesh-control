@@ -37,6 +37,7 @@ behind the older dashboard layout.
 | Embedded sign-in terminal | `/api/agents/{kind}/auth/*` → the CLI's documented `login` command hosted in a POSIX PTY |
 | AI Council (members, meetings, rounds, decision) | `/api/council/*` → the browser runtime's provider sessions, account-aware |
 | Projects, tasks, workspaces, delivery, workers | `/api/projects`, `/api/tasks`, `/api/workspaces`, `/api/delivery`, `/api/workers` |
+| Worker Nodes → Public access · ngrok (install, authtoken, start, stop, live URL, worker command) | `/api/tunnel/*` → the official `ngrok config add-authtoken` and `ngrok http` commands; the URL is read from ngrok's local API |
 
 Nothing on these pages is simulated: a row is green only because a real command
 returned, and an unavailable runtime is reported as unavailable.
@@ -370,6 +371,11 @@ npx --prefix frontend tsc -p frontend/tsconfig.json --noEmit && npm --prefix fro
 - **Worker-laptop agent installation is out of scope** for this component; it is
   handled by another team member. This dashboard only installs on the central
   server, and says so on the page.
+- **The ngrok tunnel needs an ngrok account.** The dashboard downloads the
+  official agent, saves the authtoken with ngrok's own command and reports only
+  the URL ngrok publishes. On the free plan that hostname changes on every
+  start, so pairing codes must be reissued after a restart. ngrok's free plan
+  can also show a one-time browser warning page on the public URL.
 - **Screenshots of the dashboard are not part of the automated tests.** The
   visual checks in section 3 were taken by hand from the running app.
 
@@ -380,6 +386,10 @@ npx --prefix frontend tsc -p frontend/tsconfig.json --noEmit && npm --prefix fro
   ForgeMesh records only whether it is signed in.
 - PTY output is redacted before it is persisted, and an account row serialises
   without any cookie/token/secret field (covered by tests).
+- The ngrok authtoken is handed straight to `ngrok config add-authtoken` and
+  written only to ngrok's private config (mode `0600`). It is never stored in
+  the control database or audit log, never returned by an API route, and any
+  token-shaped value is redacted from ngrok output before it is shown.
 - Login, logout, account switching, destructive removal and agent execution are
   audited (`AuditService`) and emitted as events.
 - Destructive and externally consequential actions require an explicit

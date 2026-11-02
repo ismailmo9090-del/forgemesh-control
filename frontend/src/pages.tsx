@@ -16,6 +16,7 @@ import type {
   SchedulerSnapshot,
   ServerStatus,
   TaskRecord,
+  TunnelStatus,
   Worker,
   WorkerSnapshot,
   WorkspaceStatus
@@ -544,7 +545,15 @@ export function AgentDetail({
         </div>
         <div>
           <span>Availability</span>
-          <StatusChip status={agent.availability} />
+          <StatusChip
+            status={agent.availability}
+            label={
+              agent.availability === "limited" &&
+              agent.metadata?.functional_check?.attempted === false
+                ? "unverified"
+                : undefined
+            }
+          />
         </div>
         <div>
           <span>Update policy</span>
@@ -640,9 +649,12 @@ export function AgentDetail({
             </ul>
           ) : (
             <p className="muted">
-              {agent.auth_status === "unauthenticated"
+              {agent.auth_status === "unauthenticated" &&
+              agent.metadata?.auth_required_for_use !== false
                 ? "No models listed until the official login is completed."
-                : "The CLI reported no models."}
+                : agent.metadata?.auth_required_for_use === false
+                  ? "The CLI reported no models; its free models can still run without a credential."
+                  : "The CLI reported no models."}
             </p>
           )}
         </div>
@@ -1291,17 +1303,296 @@ export function DocumentsPage({
   );
 }
 
+type TunnelAction = "start" | "stop" | "install" | "authtoken";
+
+const TUNNEL_STATE_LABEL: Record<TunnelStatus["state"], string> = {
+  not_installed: "not installed",
+  needs_authtoken: "token needed",
+  stopped: "stopped",
+  starting: "starting",
+  running: "live",
+  error: "error"
+};
+
+function TunnelCard({
+  tunnel,
+  pairing,
+  label,
+  busy,
+  message,
+  onAction,
+  onCopy,
+  onCreatePairing
+}: {
+  tunnel: TunnelStatus | null;
+  pairing: PairingCode | null;
+  label: string;
+  busy: string;
+  message: string;
+  onAction: (kind: TunnelAction, token?: string) => Promise<boolean>;
+  onCopy: (value: string, what: string) => void;
+  onCreatePairing: () => void;
+}) {
+  const [token, setToken] = useState("");
+  const [showForm, setShowForm] = useState(false);
+
+  const joinCommands =
+    tunnel?.public_url && pairing
+      ? [
+          `fmw register --server ${tunnel.public_url} --code ${pairing.code} --name "${
+            label.trim() || "Worker 1"
+          }"`,
+          "fmw run"
+        ].join("\n")
+      : "";
+
+  return (
+    <Card
+      title="Public access · ngrok"
+      subtitle="Expose this control server over HTTPS so Mesh Clients on other networks can connect."
+      action={
+        tunnel ? (
+          <StatusChip
+            status={
+              tunnel.running ? "running" : tunnel.state === "error" ? "failed" : tunnel.state
+            }
+            label={TUNNEL_STATE_LABEL[tunnel.state]}
+          />
+        ) : undefined
+      }
+    >
+      {!tunnel ? (
+        <p className="muted small">Reading ngrok state…</p>
+      ) : (
+        <>
+          {tunnel.installed ? (
+            <p className="muted small mono">
+              ngrok {tunnel.version || "installed"} · {tunnel.path}
+            </p>
+          ) : (
+            <div className="pairing-box">
+              <strong>ngrok is not installed on this server</strong>
+              <p className="muted small">
+                Workers never need ngrok; only this server does. Download the official agent once,
+                then save your authtoken below.
+              </p>
+              <div className="row">
+                <button
+                  className="btn primary"
+                  disabled={busy === "install" || !tunnel.install_supported}
+                  onClick={() => void onAction("install")}
+                >
+                  {busy === "install" ? "Downloading…" : "Download ngrok (official)"}
+                </button>
+                <a
+                  className="btn ghost"
+                  href={tunnel.install_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  ngrok.com/download
+                </a>
+              </div>
+              {!tunnel.install_supported && (
+                <p className="muted small">
+                  Automatic download is offered on Linux only. Use the link above.
+                </p>
+              )}
+              {tunnel.install_commands[0] && (
+                <code className="small">{tunnel.install_commands[0]}</code>
+              )}
+            </div>
+          )}
+
+          {tunnel.installed && (!tunnel.authtoken_saved || showForm) && (
+            <div className="pairing-box">
+              <strong>
+                {tunnel.authtoken_saved ? "Replace the ngrok authtoken" : "Connect your ngrok account"}
+              </strong>
+              <p className="muted small">
+                Create a free account at{" "}
+                <a href="https://dashboard.ngrok.com/get-started/your-authtoken" target="_blank" rel="noreferrer">
+                  dashboard.ngrok.com
+                </a>
+                , copy the authtoken and paste it here. It is saved by ngrok&apos;s own{" "}
+                <code>config add-authtoken</code> command in a private file (mode 0600), and the
+                dashboard never shows it again.
+              </p>
+              <div className="row">
+                <input
+                  type="password"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={token}
+                  onChange={(event) => setToken(event.target.value)}
+                  placeholder="ngrok authtoken"
+                />
+                <button
+                  className="btn primary"
+                  disabled={busy === "authtoken" || token.trim().length < 20}
+                  onClick={async () => {
+                    if (await onAction("authtoken", token.trim())) {
+                      setToken("");
+                      setShowForm(false);
+                    }
+                  }}
+                >
+                  {busy === "authtoken" ? "Saving…" : "Save authtoken"}
+                </button>
+                {tunnel.authtoken_saved && (
+                  <button
+                    className="btn ghost"
+                    onClick={() => {
+                      setShowForm(false);
+                      setToken("");
+                    }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {tunnel.installed && tunnel.authtoken_saved && (
+            <>
+              <div className="detail-grid">
+                <div>
+                  <span>Credential</span>
+                  <strong>
+                    {tunnel.authtoken_source === "forgemesh"
+                      ? "ForgeMesh config"
+                      : "existing ngrok config"}
+                  </strong>
+                </div>
+                <div>
+                  <span>Local server</span>
+                  <code className="small">{tunnel.local_url}</code>
+                </div>
+                <div>
+                  <span>Public URL</span>
+                  <strong>{tunnel.public_url || "not started"}</strong>
+                </div>
+                <div>
+                  <span>Free plan note</span>
+                  <strong>URL changes on restart</strong>
+                </div>
+              </div>
+
+              <div className="row">
+                {tunnel.running ? (
+                  <button
+                    className="btn danger"
+                    disabled={busy === "stop"}
+                    onClick={() => void onAction("stop")}
+                  >
+                    {busy === "stop" ? "Stopping…" : "Stop tunnel"}
+                  </button>
+                ) : (
+                  <button
+                    className="btn primary"
+                    disabled={busy === "start" || tunnel.state === "starting"}
+                    onClick={() => void onAction("start")}
+                  >
+                    {busy === "start" || tunnel.state === "starting"
+                      ? "Starting…"
+                      : "Start public tunnel"}
+                  </button>
+                )}
+                <button className="btn ghost small-btn" onClick={() => setShowForm((value) => !value)}>
+                  {showForm ? "Hide token form" : "Replace token"}
+                </button>
+              </div>
+            </>
+          )}
+
+          {tunnel.running && tunnel.public_url && (
+            <div className="pairing-box">
+              <div>
+                <span className="muted small">Public HTTPS URL</span>
+                <strong className="mono">{tunnel.public_url}</strong>
+              </div>
+              <div className="row">
+                <button
+                  className="btn ghost small-btn"
+                  onClick={() => onCopy(tunnel.public_url || "", "Public URL")}
+                >
+                  Copy URL
+                </button>
+                <a
+                  className="btn ghost small-btn"
+                  href={tunnel.public_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open dashboard
+                </a>
+                <button className="btn ghost small-btn" onClick={onCreatePairing}>
+                  Create pairing code
+                </button>
+              </div>
+              <p className="muted small">
+                Anyone with this URL can reach the dashboard; the control token still protects it,
+                so keep the URL private. {tunnel.free_plan_note} ngrok&apos;s free plan can show a
+                one-time browser warning page — click “Visit Site”. Mesh Client WebSockets are not
+                affected.
+              </p>
+            </div>
+          )}
+
+          {tunnel.public_url &&
+            (pairing ? (
+              <div>
+                <span className="muted small">
+                  Worker command · code valid until {formatTime(pairing.expires_at)}
+                </span>
+                <pre className="json-box">{joinCommands}</pre>
+                <button
+                  className="btn ghost small-btn"
+                  onClick={() => onCopy(joinCommands, "Worker commands")}
+                >
+                  Copy commands
+                </button>
+              </div>
+            ) : (
+              <p className="muted small">
+                Create a pairing code to get the exact Mesh Client command for this public URL.
+              </p>
+            ))}
+
+          {tunnel.last_error && (
+            <details className="pairing-box">
+              <summary>ngrok reported an error</summary>
+              <pre className="json-box">{tunnel.last_error}</pre>
+            </details>
+          )}
+
+          {message && <p className="muted small">{message}</p>}
+        </>
+      )}
+    </Card>
+  );
+}
+
 export function WorkersPage() {
   const [snapshot, setSnapshot] = useState<WorkerSnapshot | null>(null);
+  const [tunnel, setTunnel] = useState<TunnelStatus | null>(null);
   const [pairing, setPairing] = useState<PairingCode | null>(null);
   const [label, setLabel] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  const [tunnelBusy, setTunnelBusy] = useState("");
+  const [tunnelMessage, setTunnelMessage] = useState("");
   const [confirmRevoke, setConfirmRevoke] = useState("");
 
   const load = async () => {
     try {
-      setSnapshot(await api<WorkerSnapshot>("/api/workers"));
+      const [nextSnapshot, nextTunnel] = await Promise.all([
+        api<WorkerSnapshot>("/api/workers"),
+        api<TunnelStatus>("/api/tunnel")
+      ]);
+      setSnapshot(nextSnapshot);
+      setTunnel(nextTunnel);
       setError("");
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem));
@@ -1329,6 +1620,53 @@ export function WorkersPage() {
       setError(problem instanceof Error ? problem.message : String(problem));
     } finally {
       setBusy("");
+    }
+  }
+
+  async function runTunnel(kind: TunnelAction, token?: string): Promise<boolean> {
+    setTunnelBusy(kind);
+    setTunnelMessage("");
+    setError("");
+    try {
+      const path =
+        kind === "authtoken" ? "/api/tunnel/authtoken" : `/api/tunnel/${kind}`;
+      const next = await api<TunnelStatus>(path, {
+        method: "POST",
+        body: kind === "authtoken" ? JSON.stringify({ token }) : undefined
+      });
+      setTunnel(next);
+      if (kind === "authtoken") {
+        setTunnelMessage(
+          next.restart_required
+            ? "Authtoken saved. Restart the tunnel so ngrok uses it."
+            : "Authtoken saved. The dashboard will not show it again."
+        );
+      } else if (kind === "start") {
+        setTunnelMessage(
+          next.public_url
+            ? `Tunnel live at ${next.public_url}`
+            : "ngrok is starting; this card updates when the public URL is ready."
+        );
+      } else if (kind === "stop") {
+        setTunnelMessage("Tunnel stopped.");
+      } else {
+        setTunnelMessage(`ngrok ${next.version || ""} installed.`.trim());
+      }
+      return true;
+    } catch (problem) {
+      setTunnelMessage(problem instanceof Error ? problem.message : String(problem));
+      return false;
+    } finally {
+      setTunnelBusy("");
+    }
+  }
+
+  async function copyText(value: string, what: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setTunnelMessage(`${what} copied.`);
+    } catch {
+      setTunnelMessage("Copy failed; select the text and copy it manually.");
     }
   }
 
@@ -1434,6 +1772,17 @@ export function WorkersPage() {
           </div>
         )}
       </Card>
+
+      <TunnelCard
+        tunnel={tunnel}
+        pairing={pairing}
+        label={label}
+        busy={tunnelBusy}
+        message={tunnelMessage}
+        onAction={runTunnel}
+        onCopy={(value, what) => void copyText(value, what)}
+        onCreatePairing={() => void createPairing()}
+      />
 
       {items.length === 0 ? (
         <Card title="No paired workers" subtitle="Real pairing data only">

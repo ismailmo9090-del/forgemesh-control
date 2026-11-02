@@ -10,6 +10,7 @@ from forgemesh_control.api.routes import (
     projects,
     system,
     tasks,
+    tunnel,
     workers,
 )
 
@@ -23,5 +24,6 @@ __all__ = [
     "projects",
     "system",
     "tasks",
+    "tunnel",
     "workers",
 ]

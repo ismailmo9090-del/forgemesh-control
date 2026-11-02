@@ -18,6 +18,7 @@ from typing import Any
 from sqlalchemy import select
 
 from forgemesh_browser.security.permissions import secure_file
+from forgemesh_control import __version__
 from forgemesh_control.accounts import AiAccountService
 from forgemesh_control.agent_auth import AgentAuthService
 from forgemesh_control.agents import CentralAgentRegistry
@@ -36,6 +37,7 @@ from forgemesh_control.projects import ProjectService
 from forgemesh_control.scheduler import TaskScheduler
 from forgemesh_control.security import control_token
 from forgemesh_control.storage import ControlDatabase
+from forgemesh_control.tunnel import TunnelService
 from forgemesh_control.workspaces import WorkspaceService
 
 logger = logging.getLogger("forgemesh.control.runtime")
@@ -55,6 +57,7 @@ class ControlRuntime:
             settings, self.db, self.events, self.audit
         )
         self.mesh = MeshService(settings, self.db, self.events, self.audit)
+        self.tunnel = TunnelService(settings, self.events, self.audit)
         self.workspaces = WorkspaceService(settings)
         self.delivery = DeliveryService(
             settings, self.db, self.events, self.audit, self.workspaces
@@ -105,6 +108,7 @@ class ControlRuntime:
         await self.council.reconcile()
         await self.scheduler.reconcile()
         self.mesh.start()
+        await self.tunnel.reconcile()
         await self.agents.ensure_rows()
         self.started_at = datetime.now(UTC)
         await self.agents.detect_all()
@@ -152,6 +156,8 @@ class ControlRuntime:
             await self.agent_auth.shutdown()
         with contextlib.suppress(Exception):
             await self.council.shutdown()
+        with contextlib.suppress(Exception):
+            await self.tunnel.stop()
         with contextlib.suppress(Exception):
             await self.mesh.stop()
         await self.browser.close()
@@ -264,7 +270,7 @@ class ControlRuntime:
         counts = await self._counts()
         return {
             "service": "forgemesh-control",
-            "version": "0.1.0",
+            "version": __version__,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "host": metrics["host"],
             "metrics": metrics,

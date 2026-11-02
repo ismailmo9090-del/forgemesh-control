@@ -125,7 +125,11 @@ class BrainService:
                     BrainAttempt(kind=kind, ok=False, duration_ms=0, detail="disabled")
                 )
                 continue
-            if info.get("availability") != "available":
+            # "limited" means installed and executable but not functionally
+            # verified (for example right after a sign-in where the prompt was
+            # skipped). Running it is the only honest way to know, and any
+            # failure is reported with the CLI's own text.
+            if info.get("availability") not in {"available", "limited"}:
                 attempts.append(
                     BrainAttempt(
                         kind=kind,

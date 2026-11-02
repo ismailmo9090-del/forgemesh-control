@@ -28,6 +28,7 @@ from forgemesh_control.projects import ProjectError
 from forgemesh_control.runtime import ControlRuntime
 from forgemesh_control.scheduler import SchedulerError
 from forgemesh_control.security import SecurityError
+from forgemesh_control.tunnel import TunnelError
 from forgemesh_control.workspaces import WorkspaceError
 
 PROTECTED = [Depends(require_local), Depends(require_token)]
@@ -158,6 +159,13 @@ def create_app(settings: ControlSettings | None = None) -> FastAPI:
             },
         )
 
+    @app.exception_handler(TunnelError)
+    async def tunnel_error(_request: Request, exc: TunnelError) -> JSONResponse:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"error": {"code": exc.code, "message": exc.message}},
+        )
+
     @app.exception_handler(SecurityError)
     async def security_error(_request: Request, exc: SecurityError) -> JSONResponse:
         return JSONResponse(
@@ -214,6 +222,7 @@ def create_app(settings: ControlSettings | None = None) -> FastAPI:
     app.include_router(routes.tasks.router, dependencies=PROTECTED)
     app.include_router(routes.council.router, dependencies=PROTECTED)
     app.include_router(routes.execution.router, dependencies=PROTECTED)
+    app.include_router(routes.tunnel.router, dependencies=PROTECTED)
     app.include_router(ws_router)
 
     dist_dir = Path(resolved.frontend_dist)

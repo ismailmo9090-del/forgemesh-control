@@ -7,7 +7,7 @@ CLI and a token-authenticated local HTTP + WebSocket API, and records every
 action in a SQLite journal plus an append-only audit log. It is built to be a
 core component of a multi-agent system, not a thin Playwright wrapper.
 
-Version 0.1.0 · Python ≥ 3.11 · Ubuntu 26.04 tested (22.04+ expected) ·
+Version 0.1.1 · Python ≥ 3.11 · Ubuntu 26.04 tested (22.04+ expected) ·
 no root required to install or run.
 
 ## Status at a glance
@@ -68,7 +68,7 @@ one confirmation). Optional global command:
 ```bash
 (cd frontend && npm ci && npm run build)   # prebuilt dashboard is embedded
 bash packaging/build-deb.sh                # writes dist/forgemesh-control_<version>_all.deb
-sudo apt install ./dist/forgemesh-control_0.1.0_all.deb
+sudo apt install ./dist/forgemesh-control_0.1.1_all.deb
 ```
 
 The package installs the application to `/opt/forgemesh/app`, creates a private
@@ -273,6 +273,32 @@ the worker laptops.
 5. The Workers page lists the node after its first real heartbeat. Revoking a
    worker from the dashboard invalidates its token immediately.
 6. Keep it running after logout: `systemctl --user enable --now forgemesh-worker`.
+
+### Public access over ngrok (no port forwarding)
+
+If the worker is not on the same LAN, expose the control server through an
+ngrok HTTPS tunnel instead of opening router ports:
+
+1. Open **Worker Nodes → Public access · ngrok**.
+2. Click **Download ngrok (official)** if it is not installed, then paste your
+   authtoken from <https://dashboard.ngrok.com/get-started/your-authtoken> and
+   save it. The token is written by ngrok's own `config add-authtoken` command
+   into a private file (mode `0600`) and the dashboard never shows it again.
+3. Click **Start public tunnel**. The card shows the live `https://…ngrok…`
+   URL only after ngrok's local API reports it.
+4. Create a pairing code, then run the command the card shows on the worker:
+   ```bash
+   fmw register --server https://YOUR-URL.ngrok-free.app --code ABC123XY --name "Worker 1"
+   fmw run
+   ```
+   No `--insecure-http` is needed for the HTTPS URL, and the server can keep
+   listening on `127.0.0.1` — the tunnel forwards to it locally.
+
+The free ngrok plan assigns a new hostname on every start and can show a
+one-time browser warning page on the dashboard (click **Visit Site**; worker
+WebSockets are unaffected). The URL is publicly reachable: the control token
+still protects every route, so keep the URL private. A new pairing code is
+needed after each tunnel restart.
 
 ## Documentation
 

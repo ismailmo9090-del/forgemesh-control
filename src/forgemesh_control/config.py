@@ -89,6 +89,7 @@ class ControlSettings(BaseSettings):
     # Coding agents. Empty means "probe PATH and known install locations".
     opencode_bin: str | None = None
     qoder_bin: str | None = None
+    ngrok_bin: str | None = None
     agent_timeout_seconds: int = Field(default=3600, ge=30)
     agent_max_concurrency: int = Field(default=2, ge=1, le=16)
     auto_install_agents: bool = True

@@ -426,6 +426,34 @@ async def test_setup_status_keeps_a_credential_free_cli_out_of_the_sign_in_list(
     assert "Authentication required" not in reasons["opencode"]
 
 
+async def test_rows_without_a_capability_record_still_ask_the_adapter(
+    settings: ControlSettings, db: ControlDatabase
+) -> None:
+    from forgemesh_control.agents.registry import CentralAgentRegistry
+
+    registry = CentralAgentRegistry(
+        settings, db, EventStore(db), AuditService(db, settings.logs_dir)
+    )
+    for kind in ("opencode", "qoder"):
+        # Detection-only rows carry no auth_required_for_use metadata.
+        await registry._update_row(
+            kind,
+            installed=True,
+            path=f"/tmp/{kind}",
+            version="1.0.0",
+            install_status="ready",
+            availability="limited",
+            auth_status="unauthenticated",
+            enabled=True,
+            metadata={"functional_check": {"attempted": False}},
+        )
+
+    status = await registry.setup_status()
+
+    assert status["auth_needed"] == ["qoder"]
+    assert status["auth_optional"] == ["opencode"]
+
+
 async def test_qoder_uses_the_documented_config_dir_isolation(tmp_path: Path) -> None:
     binary = make_exe(tmp_path / "qodercli", QODER_FAKE)
     agent = QoderAgent(binary, timeout_seconds=30)

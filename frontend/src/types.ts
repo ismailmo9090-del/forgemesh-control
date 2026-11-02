@@ -29,6 +29,7 @@ export interface AgentInfo {
     models?: string[];
     model_count?: number;
     functional_check?: {
+      attempted?: boolean;
       verified?: boolean;
       auth_required?: boolean;
       model?: string | null;
@@ -496,6 +497,31 @@ export interface WorkerSnapshot {
     ttl_seconds: number;
   };
   protocol_version: number;
+}
+
+export interface TunnelStatus {
+  installed: boolean;
+  path: string;
+  version: string;
+  state: "not_installed" | "needs_authtoken" | "stopped" | "starting" | "running" | "error";
+  running: boolean;
+  public_url: string | null;
+  worker_server_url: string;
+  local_url: string;
+  port: number;
+  authtoken_saved: boolean;
+  authtoken_source: "forgemesh" | "ngrok" | "";
+  log_path: string;
+  last_error: string;
+  started_at: string | null;
+  join_steps: string[];
+  free_plan_note: string;
+  install_supported: boolean;
+  install_url: string;
+  install_commands: string[];
+  saved?: boolean;
+  restart_required?: boolean;
+  installed_path?: string;
 }
 
 export interface DesktopAutostart {
