@@ -327,6 +327,10 @@ class GenericChatProvider:
         )
         if markers:
             await first_visible(page, markers, timeout_ms=self.state_wait_ms)
+        # DeepSeek and others route "/" to their sign-in page only after the
+        # bundle boots, so the URL seen on entry can be stale by now. The
+        # login-URL check and the reported state must use the settled page.
+        url = page.url
         if self.logged_out_selectors:
             logged_out, _ = await any_visible(page, self.logged_out_selectors)
         else:

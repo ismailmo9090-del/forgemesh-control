@@ -22,8 +22,8 @@ no root required to install or run.
 | Upload/download with SHA-256 asset manifest | complete |
 | FastAPI + WebSocket local API with token auth | complete |
 | AI layer (Ollama local-first, OpenAI-compatible opt-in) | implemented and unit-tested; **not verified against a live model on this machine** (Ollama not installed here) |
-| Provider adapters (ChatGPT, Claude, Kimi, DeepSeek, Grok, Perplexity, Gemini, Sarvam Indus) | implemented; DeepSeek validated end-to-end (manual Google login + live prompt), others not yet validated live |
-| Tests | 153 headless-unit/integration tests, all passing; real-Chrome suite marked `browser` |
+| Provider adapters (ChatGPT, Claude, Kimi, DeepSeek, Grok, Perplexity, Gemini, Sarvam Indus) | implemented; DeepSeek, ChatGPT, Gemini and Sarvam Indus validated live (prompts submitted and answers extracted through their web UIs); Claude, Kimi, Grok and Perplexity not yet validated live |
+| Tests | 354 headless unit/integration tests, all passing; 6 real-Chrome tests marked `browser` |
 | systemd packaging | unit file and docs provided; not auto-installed |
 
 ## Requirements
@@ -352,9 +352,10 @@ needed after each tunnel restart.
   installed on this machine); the transport, capability checks and error paths
   are covered by tests with a fake provider.
 - The eight provider adapters encode current ChatGPT/Claude/Kimi/DeepSeek/Grok/
-  Perplexity/Gemini/Sarvam Indus UI structure. DeepSeek is validated live; the
-  rest are unverified in this environment and need selector updates when those
-  sites change. The Sarvam Indus chat UI sits behind a login wall, so its
+  Perplexity/Gemini/Sarvam Indus UI structure. DeepSeek, ChatGPT, Gemini and
+  Sarvam Indus are validated live; the rest are unverified in this environment
+  and need selector updates when those sites change. The Sarvam Indus chat UI
+  sits behind a login wall, so its
   post-login selectors are best-effort until first use.
 - Prefill login is best-effort by design: sites that only offer SSO, change
   their form, or add an extra step come back as `needs_human` (or `error`) and

@@ -114,6 +114,50 @@ async def test_identity_provider_refusal_is_reported_not_bypassed() -> None:
     assert (await adapter.detect_login_state(form)).state == "logged_out"
 
 
+async def test_deepseek_sign_in_form_is_logged_out_without_url_help() -> None:
+    """Live DOM (2026-11-02) uses role=button divs, not <button> or <a>."""
+
+    adapter = DeepSeek()
+    adapter.state_wait_ms = 0
+
+    landing = FakePage("https://chat.deepseek.com/", {"input[type='password']"})
+    state = await adapter.detect_login_state(landing)
+    assert state.state == "logged_out"
+    with pytest.raises(NotAuthenticated):
+        await adapter.require_login(landing)
+
+    cta = FakePage("https://chat.deepseek.com/", {"div[role='button']:has-text('Log in')"})
+    assert (await adapter.detect_login_state(cta)).state == "logged_out"
+
+    chat = FakePage("https://chat.deepseek.com/a/chat/s/1", {adapter.composer_selectors[0]})
+    assert (await adapter.detect_login_state(chat)).state == "logged_in"
+
+
+class RedirectingPage(FakePage):
+    """An SPA that boots at "/" and only routes to /sign_in once hydrated."""
+
+    def __init__(self, start: str, settled: str, visible: set[str] | None = None) -> None:
+        super().__init__(start, visible)
+        self.settled = settled
+
+    def locator(self, selector: str) -> FakeLocator:
+        self.url = self.settled
+        return super().locator(selector)
+
+
+async def test_login_state_uses_the_settled_url() -> None:
+    """The pre-redirect URL must not be reported, nor hide the login path."""
+
+    adapter = DeepSeek()
+    adapter.state_wait_ms = 0
+    page = RedirectingPage(
+        "https://chat.deepseek.com/", "https://chat.deepseek.com/sign_in"
+    )
+    state = await adapter.detect_login_state(page)
+    assert state.url == "https://chat.deepseek.com/sign_in"
+    assert state.state == "logged_out"
+
+
 async def test_gemini_and_sarvam_login_detection() -> None:
     gemini = Gemini()
     gemini.state_wait_ms = 0

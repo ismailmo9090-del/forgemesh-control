@@ -37,8 +37,13 @@ class Adapter(GenericChatProvider):
         "[class*='user-info']",
     )
     logged_out_selectors = (
-        "a:has-text('Log in')",
+        # Live DOM at chat.deepseek.com/sign_in (2026-11-02): the sign-in CTA is
+        # a role=button div, not a <button> or <a>, and the form is a phone or
+        # email input plus a password input.
+        "div[role='button']:has-text('Log in')",
+        "input[type='password']",
         "button:has-text('Log in')",
+        "a:has-text('Log in')",
         "div:has-text('Sign in')",
     )
     attach_button_selectors = ("button[aria-label*='upload' i]",)
