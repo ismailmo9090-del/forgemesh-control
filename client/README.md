@@ -72,6 +72,10 @@ also installs `python3-venv`, `python3-pip`, `curl`, `ca-certificates` and
 `libnotify4`. The first install needs internet for the wheel download; upgrades
 re-run the same pip command.
 
+The **AppImage has no install hook**, so it does not create that runtime. Run it
+with `FMCM_PYTHON` pointing at an interpreter that already has
+`client/requirements-client.txt` installed, or use the `.deb` on worker laptops.
+
 ## Agents
 
 The roster is data-driven and intentionally limited to **OpenCode** (`opencode`)
@@ -147,5 +151,8 @@ server.
   already running as you. Install the app from a source you trust.
 * Wayland compositors without GPU compositing may take longer to show the main
   window; the splash reports each startup stage.
+* The AppImage does not install Python dependencies; without `FMCM_PYTHON` it
+  falls back to `/usr/bin/python3` and the bridge will not start. Prefer the
+  `.deb` on worker laptops.
 * A failed first install (offline) leaves `/opt/forgemesh-client/venv`
   incomplete; re-run `sudo apt install --reinstall ./forgemesh-client-manager_*.deb`.

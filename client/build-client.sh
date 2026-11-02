@@ -83,4 +83,4 @@ log "Writing SHA-256 checksums"
     cat SHA256SUMS
 )
 
-log "Done. Install the .deb for a per-user app, or run the AppImage directly."
+log "Done. The .deb installs its Python runtime; the AppImage needs FMCM_PYTHON."
