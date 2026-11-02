@@ -515,6 +515,7 @@ export interface TunnelStatus {
   last_error: string;
   started_at: string | null;
   join_steps: string[];
+  worker_install_command: string;
   free_plan_note: string;
   install_supported: boolean;
   install_url: string;

@@ -70,6 +70,8 @@ async def test_a_missing_binary_is_reported_as_not_installed(
     assert status["state"] == "not_installed"
     assert status["public_url"] is None
     assert status["join_steps"] == []
+    assert status["worker_install_command"].startswith("curl -fsSL ")
+    assert "--worker" in status["worker_install_command"]
 
 
 async def test_authtoken_is_saved_by_the_official_command_and_never_returned(
@@ -196,3 +198,46 @@ def test_the_tunnel_routes_require_the_control_token(control_settings: ControlSe
         assert rejected.status_code == 400
         assert rejected.json()["error"]["code"] == "invalid"
         assert "not-a-real-token" not in rejected.text
+
+
+async def test_boot_does_not_publish_with_a_shared_ngrok_token(
+    control_settings: ControlSettings, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = tmp_path / "home"
+    shared = home / ".config" / "ngrok" / "ngrok.yml"
+    shared.parent.mkdir(parents=True)
+    shared.write_text(f'version: "3"\nagent:\n    authtoken: {TOKEN}\n', encoding="utf-8")
+    monkeypatch.setenv("HOME", str(home))
+    control_settings.ngrok_bin = str(fake_ngrok(tmp_path / "ngrok"))
+    service = TunnelService(control_settings)
+
+    async def never() -> dict:
+        raise AssertionError("a shared ngrok token must not expose this server")
+
+    monkeypatch.setattr(service, "start", never)
+
+    assert await service.maybe_start_on_boot() is None
+
+
+async def test_boot_republishes_a_tunnel_configured_in_forgemesh(
+    control_settings: ControlSettings, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config_dir = control_settings.data_dir / "tunnel"
+    config_dir.mkdir(parents=True)
+    (config_dir / "ngrok.yml").write_text(
+        f'version: "3"\nagent:\n    authtoken: {TOKEN}\n', encoding="utf-8"
+    )
+    control_settings.ngrok_bin = str(fake_ngrok(tmp_path / "ngrok"))
+    service = TunnelService(control_settings)
+    started: list[bool] = []
+
+    async def fake_start() -> dict:
+        started.append(True)
+        return {"public_url": "https://live.ngrok.app"}
+
+    monkeypatch.setattr(service, "start", fake_start)
+
+    result = await service.maybe_start_on_boot()
+
+    assert started == [True]
+    assert result == {"public_url": "https://live.ngrok.app"}

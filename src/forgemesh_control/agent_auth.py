@@ -27,6 +27,7 @@ import signal
 import struct
 import subprocess
 import threading
+import time
 import uuid
 from collections.abc import Callable
 from datetime import datetime
@@ -60,6 +61,11 @@ except ImportError:  # pragma: no cover - platform dependent
 MAX_BUFFER_CHARS = 300_000
 MAX_TAIL_CHARS = 3_000
 AUTH_SESSION_TIMEOUT_SECONDS = 900
+#: A Ctrl-C pressed in the first moments can land while the child is still
+#: between fork and exec, where the signal is discarded. Re-sending it shortly
+#: after the CLI owns the terminal makes an early interrupt deterministic.
+INTERRUPT_RETRY_DELAYS = (0.3, 0.8)
+INTERRUPT_RETRY_WINDOW_SECONDS = 3.0
 #: Closed sessions kept in memory for the dashboard's last poll before only the
 #: scrubbed database tail remains.
 MAX_MEMORY_SESSIONS = 8
@@ -159,6 +165,7 @@ class TerminalSession:
         self._reader: threading.Thread | None = None
         self._cancelled = False
         self._alarm: asyncio.TimerHandle | None = None
+        self._started_monotonic = 0.0
 
     # ------------------------------------------------------------------ startup
     def start(self, *, cols: int, rows: int, timeout_seconds: int) -> None:
@@ -210,6 +217,7 @@ class TerminalSession:
                     f"Could not start the sign-in command: {exc}", code="spawn_failed"
                 ) from exc
         self.status = "running"
+        self._started_monotonic = time.monotonic()
         self._reader = threading.Thread(
             target=self._pump, name=f"agent-auth-{self.kind}", daemon=True
         )
@@ -263,6 +271,16 @@ class TerminalSession:
         it as input.
         """
 
+        self._signal_group(signal.SIGINT)
+        if time.monotonic() - self._started_monotonic <= INTERRUPT_RETRY_WINDOW_SECONDS:
+            for delay in INTERRUPT_RETRY_DELAYS:
+                self.loop.call_later(delay, self._retry_early_interrupt)
+
+    def _retry_early_interrupt(self) -> None:
+        if self.status != "running":
+            return
+        if time.monotonic() - self._started_monotonic > INTERRUPT_RETRY_WINDOW_SECONDS:
+            return
         self._signal_group(signal.SIGINT)
 
     def _on_timeout(self) -> None:

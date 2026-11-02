@@ -90,6 +90,9 @@ class ControlSettings(BaseSettings):
     opencode_bin: str | None = None
     qoder_bin: str | None = None
     ngrok_bin: str | None = None
+    # Only the token saved through the ForgeMesh dashboard counts as consent to
+    # publish this server on every start; a shared ngrok config is left alone.
+    auto_start_tunnel: bool = True
     agent_timeout_seconds: int = Field(default=3600, ge=30)
     agent_max_concurrency: int = Field(default=2, ge=1, le=16)
     auto_install_agents: bool = True

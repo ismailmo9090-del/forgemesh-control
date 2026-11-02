@@ -7,7 +7,7 @@ CLI and a token-authenticated local HTTP + WebSocket API, and records every
 action in a SQLite journal plus an append-only audit log. It is built to be a
 core component of a multi-agent system, not a thin Playwright wrapper.
 
-Version 0.1.3 · Python ≥ 3.11 · Ubuntu 26.04 tested (22.04+ expected) ·
+Version 0.1.4 · Python ≥ 3.11 · Ubuntu 26.04 tested (22.04+ expected) ·
 no root required to install or run.
 
 ## Status at a glance
@@ -68,7 +68,7 @@ one confirmation). Optional global command:
 ```bash
 (cd frontend && npm ci && npm run build)   # prebuilt dashboard is embedded
 bash packaging/build-deb.sh                # writes dist/forgemesh-control_<version>_all.deb
-sudo apt install ./dist/forgemesh-control_0.1.3_all.deb
+sudo apt install ./dist/forgemesh-control_0.1.4_all.deb
 ```
 
 The package installs the application to `/opt/forgemesh/app`, creates a private
@@ -92,6 +92,7 @@ The package also installs the same script as `forgemesh`, so later runs need no 
 forgemesh              # install or update to the latest release, then launch
 forgemesh --run        # launch the installed version (no network, no changes)
 forgemesh --install    # install or update only
+forgemesh --worker     # worker laptop: install fmw, print the join steps, start nothing
 forgemesh --reinstall  # reinstall even when the version is current
 forgemesh --dry-run    # show the plan, change nothing
 ```
@@ -308,14 +309,23 @@ ngrok HTTPS tunnel instead of opening router ports:
    save it. The token is written by ngrok's own `config add-authtoken` command
    into a private file (mode `0600`) and the dashboard never shows it again.
 3. Click **Start public tunnel**. The card shows the live `https://…ngrok…`
-   URL only after ngrok's local API reports it.
-4. Create a pairing code, then run the command the card shows on the worker:
+   URL only after ngrok's local API reports it. A token saved through this card
+   is treated as consent to publish: after a restart the server starts that
+   tunnel again by itself, so the URL is back before you go looking for it.
+   A token in ngrok's shared `~/.config/ngrok` config never triggers this;
+   disable it entirely with `FMC_AUTO_START_TUNNEL=false`.
+4. Copy the public URL, create a pairing code, and copy the worker commands the
+   card shows. On the worker laptop the first line installs `fmw` without
+   starting a server there:
    ```bash
+   curl -fsSL https://raw.githubusercontent.com/ismailmo9090-del/forgemesh-control/main/scripts/forgemesh.sh | bash -s -- --worker
    fmw register --server https://YOUR-URL.ngrok-free.app --code ABC123XY --name "Worker 1"
    fmw run
    ```
    No `--insecure-http` is needed for the HTTPS URL, and the server can keep
-   listening on `127.0.0.1` — the tunnel forwards to it locally.
+   listening on `127.0.0.1` — the tunnel forwards to it locally. The worker's
+   coding CLIs (OpenCode/Qoder) are installed and signed in on that laptop; this
+   server never does that for it.
 
 The free ngrok plan assigns a new hostname on every start and can show a
 one-time browser warning page on the dashboard (click **Visit Site**; worker

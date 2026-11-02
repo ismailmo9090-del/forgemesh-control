@@ -18,6 +18,7 @@ import asyncio
 import contextlib
 import io
 import json
+import logging
 import os
 import platform
 import re
@@ -52,6 +53,14 @@ TOKEN_INPUT_PATTERN = re.compile(r"[A-Za-z0-9._\-]{20,200}")
 
 START_TIMEOUT_SECONDS = 30.0
 MAX_DOWNLOAD_BYTES = 120 * 1024 * 1024
+
+#: One-time setup for the other laptop; the package then provides ``fmw``.
+WORKER_INSTALL_COMMAND = (
+    "curl -fsSL https://raw.githubusercontent.com/ismailmo9090-del/"
+    "forgemesh-control/main/scripts/forgemesh.sh | bash -s -- --worker"
+)
+
+logger = logging.getLogger(__name__)
 
 
 class TunnelError(RuntimeError):
@@ -372,6 +381,7 @@ class TunnelService:
             "last_error": _redact(self._last_error or ""),
             "started_at": self._started_at if alive else None,
             "join_steps": self._join_steps(public_url),
+            "worker_install_command": WORKER_INSTALL_COMMAND,
             "free_plan_note": (
                 "The free ngrok plan assigns a new public URL every time the tunnel "
                 "starts, so create a new pairing code after each restart."
@@ -554,6 +564,27 @@ class TunnelService:
             self._clear_state()
             await self._record("tunnel.failed", error=self._last_error)
             raise TunnelError(self._last_error, code="start_failed")
+
+    async def maybe_start_on_boot(self) -> dict[str, Any] | None:
+        """Publish this server again when the operator already opted in.
+
+        The token must come from the tunnel card's own config. A token in
+        ``~/.config/ngrok`` may belong to unrelated work, so it never starts
+        this server automatically.
+        """
+        status = await self.status()
+        if status["running"] or not status["installed"]:
+            return None
+        if status["authtoken_source"] != "forgemesh":
+            return None
+        if status["state"] not in {"stopped", "error"}:
+            return None
+        try:
+            return await self.start()
+        except TunnelError as exc:
+            # start() already recorded the real failure; the card polls it.
+            logger.warning("Automatic tunnel start failed: %s", exc.message)
+            return await self.status()
 
     async def stop(self) -> dict[str, Any]:
         async with self._lock:

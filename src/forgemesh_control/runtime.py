@@ -97,6 +97,7 @@ class ControlRuntime:
         self.started_at: datetime | None = None
         self._setup_task: asyncio.Task[Any] | None = None
         self._agent_verify_task: asyncio.Task[Any] | None = None
+        self._tunnel_task: asyncio.Task[Any] | None = None
         self._stopping = False
 
     # ------------------------------------------------------------------- startup
@@ -110,6 +111,10 @@ class ControlRuntime:
         await self.scheduler.reconcile()
         self.mesh.start()
         await self.tunnel.reconcile()
+        if self.settings.auto_start_tunnel:
+            # A tunnel the operator configured through the dashboard should be
+            # back in place before they go looking for its URL.
+            self._tunnel_task = asyncio.create_task(self._auto_start_tunnel())
         await self.agents.ensure_rows()
         self.started_at = datetime.now(UTC)
         await self.agents.detect_all()
@@ -130,6 +135,14 @@ class ControlRuntime:
             self._agent_verify_task = asyncio.create_task(self._verify_unchecked_agents())
         if self.settings.auto_queue_tasks:
             await self.scheduler.start_queue()
+
+    async def _auto_start_tunnel(self) -> None:
+        try:
+            await self.tunnel.maybe_start_on_boot()
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - startup must continue
+            logger.warning("Automatic tunnel start crashed: %s", exc)
 
     async def _verify_unchecked_agents(self) -> None:
         try:
@@ -181,6 +194,9 @@ class ControlRuntime:
         if self._agent_verify_task is not None and not self._agent_verify_task.done():
             self._agent_verify_task.cancel()
             await asyncio.gather(self._agent_verify_task, return_exceptions=True)
+        if self._tunnel_task is not None and not self._tunnel_task.done():
+            self._tunnel_task.cancel()
+            await asyncio.gather(self._tunnel_task, return_exceptions=True)
         with contextlib.suppress(Exception):
             await self.scheduler.shutdown()
         with contextlib.suppress(Exception):

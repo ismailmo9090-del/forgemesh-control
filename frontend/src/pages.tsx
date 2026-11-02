@@ -1346,11 +1346,16 @@ function TunnelCard({
   const joinCommands =
     tunnel?.public_url && pairing
       ? [
+          "# On the worker laptop - first time only (installs fmw, starts nothing here):",
+          tunnel.worker_install_command,
+          "# Then pair it with the code above:",
           `fmw register --server ${tunnel.public_url} --code ${pairing.code} --name "${
             label.trim() || "Worker 1"
           }"`,
           "fmw run"
-        ].join("\n")
+        ]
+          .filter(Boolean)
+          .join("\n")
       : "";
 
   return (
@@ -1560,6 +1565,10 @@ function TunnelCard({
                 >
                   Copy commands
                 </button>
+                <p className="muted small">
+                  Run these on the worker laptop. ForgeMesh does not install or sign in that
+                  laptop&apos;s coding CLIs; do that once on the laptop itself.
+                </p>
               </div>
             ) : (
               <p className="muted small">

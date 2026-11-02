@@ -34,6 +34,7 @@ Usage:
   $PROG                 install or update to the latest release, then launch
   $PROG --run           launch the installed version (no network, no changes)
   $PROG --install       install or update only
+  $PROG --worker        set up a worker laptop: install/update, print join steps
   $PROG --reinstall     reinstall the latest release even if it is current
   $PROG --dry-run       show what would happen, change nothing
   $PROG --help          show this help
@@ -53,6 +54,7 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --run) ACTION="run" ;;
         --install) ACTION="install" ;;
+        --worker) ACTION="worker" ;;
         --reinstall) REINSTALL=1 ;;
         --dry-run) DRY_RUN=1 ;;
         -h|--help) usage; exit 0 ;;
@@ -200,6 +202,33 @@ if [ "$NEED_INSTALL" -eq 1 ]; then
     fi
 elif [ -n "$INSTALLED" ]; then
     log "ForgeMesh ${INSTALLED} is already the latest release."
+fi
+
+if [ "$ACTION" = "worker" ]; then
+    if [ "$DRY_RUN" -eq 1 ]; then
+        log "Would set up this laptop as a Mesh Client worker and print the join steps"
+        exit 0
+    fi
+    command -v fmw >/dev/null 2>&1 \
+        || fail "fmw is missing; the package may be incomplete."
+    cat <<EOF
+
+This laptop is set up as a Mesh Client worker (ForgeMesh ${INSTALLED:-unknown}).
+Nothing runs and nothing is exposed here.
+
+On the server laptop: Dashboard -> Worker Nodes
+  1. Start the public ngrok tunnel and copy the https://... URL.
+  2. Create a pairing code.
+
+Then run here:
+  fmw register --server https://<public-url> --code <PAIRING-CODE> --name "Worker 1"
+  fmw run
+
+Install and sign in to OpenCode/Qoder on this laptop yourself; ForgeMesh never
+does that for you. Keep it running after logout:
+  systemctl --user enable --now forgemesh-worker
+EOF
+    exit 0
 fi
 
 if [ "$RESTART" -eq 1 ]; then
