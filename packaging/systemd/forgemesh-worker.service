@@ -1,0 +1,15 @@
+[Unit]
+Description=ForgeMesh mesh worker client
+Documentation=https://github.com/ismailmo9090-del/forgemesh-control
+After=network-online.target
+
+[Service]
+Type=simple
+# Register first: fmw register --server https://... --code ...
+ExecStart=/usr/bin/fmw run
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,5 @@
+#!/bin/sh
+# ForgeMesh mesh worker client (pair + run) shipped by the control package.
+export PYTHONNOUSERSITE=1
+export PYTHONPATH="/opt/forgemesh/app/src${PYTHONPATH:+:$PYTHONPATH}"
+exec /opt/forgemesh/venv/bin/python -m forgemesh_control.worker_client "$@"

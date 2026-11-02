@@ -90,6 +90,7 @@ write_wrapper "$STAGE/usr/bin/fmb" "forgemesh_browser.main"
 write_wrapper "$STAGE/usr/bin/fmc" "forgemesh_control.main"
 
 install -m 0755 packaging/launcher/forgemesh-control "$STAGE/usr/bin/forgemesh-control"
+install -m 0755 packaging/launcher/fmw "$STAGE/usr/bin/fmw"
 
 # --- desktop integration -----------------------------------------------------
 install -m 0644 packaging/desktop/forgemesh-control.desktop \
@@ -104,6 +105,8 @@ install -m 0644 packaging/systemd/forgemesh-control.service \
     "$STAGE/usr/lib/systemd/user/forgemesh-control.service"
 install -m 0644 packaging/systemd/forgemesh-browser.service \
     "$STAGE/usr/lib/systemd/user/forgemesh-browser.service"
+install -m 0644 packaging/systemd/forgemesh-worker.service \
+    "$STAGE/usr/lib/systemd/user/forgemesh-worker.service"
 
 # --- package metadata --------------------------------------------------------
 INSTALLED_KB="$(du -sk "$STAGE" | cut -f1)"

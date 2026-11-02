@@ -247,6 +247,33 @@ First-run results measured on this machine, the mocked-versus-integration test
 split and the full list of known limitations are documented in
 [`docs/CONTROL_CENTER.md`](docs/CONTROL_CENTER.md).
 
+### Mesh workers (other laptops)
+
+Workers connect **outbound** to the control server; no ports need to open on
+the worker laptops.
+
+1. On the central server, allow LAN access (only behind a trusted network or a
+   TLS reverse proxy):
+   ```bash
+   FMC_HOST=0.0.0.0 FMC_ALLOW_REMOTE=true fmc serve
+   ```
+2. Open **Workers → Create pairing code** in the dashboard. Codes are
+   single-use and expire after 10 minutes.
+3. On the worker laptop (install the `.deb` or run `scripts/install.sh` from a
+   clone), pair and keep the session open:
+   ```bash
+   fmw register --server http://CENTRAL-IP:8787 --code ABC123XY --name "Worker 1" --insecure-http
+   fmw run
+   ```
+   `--insecure-http` is accepted only for trusted LANs; use `https://` when the
+   server sits behind TLS. The returned worker token is stored mode `0600` in
+   `~/.config/forgemesh-worker/token` and shown once.
+4. Install and log in to the coding CLIs (OpenCode/Qoder) on the worker
+   itself - the control server never installs or authenticates them remotely.
+5. The Workers page lists the node after its first real heartbeat. Revoking a
+   worker from the dashboard invalidates its token immediately.
+6. Keep it running after logout: `systemctl --user enable --now forgemesh-worker`.
+
 ## Documentation
 
 | File | Covers |
