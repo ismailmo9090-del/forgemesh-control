@@ -52,3 +52,8 @@ secrets/vault.lock
 .idea/
 .vscode/
 .DS_Store
+
+# Client Manager build outputs (patterns above are root-anchored)
+client/desktop/release/
+client/frontend/dist/
+client/desktop/captures/

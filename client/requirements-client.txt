@@ -1,0 +1,17 @@
+# Runtime dependencies for the Client Manager bridge only.
+#
+# The desktop app does not need the browser runtime (Playwright, Pillow, numpy)
+# or the encrypted vault; it needs the control modules it imports directly.
+# Keep this list in sync with the imports of:
+#   forgemesh_control.client_manager, client_worker, config, mesh, security,
+#   worker_client, agent_auth, agents.*, storage, events, audit, models
+fastapi>=0.115.6
+uvicorn>=0.34.0
+pydantic>=2.10.4
+pydantic-settings>=2.7.0
+sqlalchemy[asyncio]>=2.0.36
+aiosqlite>=0.20.0
+httpx>=0.28.1
+typer>=0.15.1
+websockets>=14.1
+pyyaml>=6.0.2

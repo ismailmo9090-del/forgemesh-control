@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    />
+    <title>ForgeMesh Client Manager</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f6f9;
+        --panel: #ffffff;
+        --panel-3: #eef2f7;
+        --accent: #3b5bdb;
+        --text: #333c48;
+        --text-strong: #1a2029;
+        --muted: #68737f;
+        --muted-2: #838d99;
+        --line: #d9e0ea;
+        --ok: #178a4c;
+        --bad: #c2392f;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; height: 100vh; background: var(--bg); color: var(--text);
+        font-family: "Inter", "Segoe UI", Ubuntu, Arial, sans-serif; font-size: 13px;
+        -webkit-app-region: drag; user-select: none;
+      }
+      .wrap {
+        height: 100%; display: flex; flex-direction: column; padding: 22px 26px 18px;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+        margin: 8px; overflow: hidden;
+      }
+      .head { display: flex; align-items: center; gap: 12px; }
+      .mark { width: 30px; height: 30px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 3px; }
+      .mark i { border: 1px solid #c3ccd9; border-radius: 2px; }
+      .mark i:nth-child(1) { grid-row: span 2; background: #eef2fd; border-color: var(--accent); }
+      .mark i:nth-child(2) { background: var(--accent); border-color: var(--accent); }
+      .mark i:nth-child(3) { background: #a9baf0; border-color: var(--accent); }
+      .head strong { display: block; font-size: 13px; letter-spacing: 0.18em; color: var(--accent); font-weight: 700; }
+      .head span { display: block; font-size: 10px; letter-spacing: 0.16em; color: var(--muted-2); text-transform: uppercase; }
+      h1 { margin: 20px 0 2px; font-size: 17px; font-weight: 600; color: var(--text-strong); }
+      .sub { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+      .stages { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+      .stage { display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--muted-2); }
+      .stage .dot {
+        width: 18px; height: 18px; flex: 0 0 auto; border-radius: 50%;
+        border: 1px solid #c3ccd9; display: grid; place-items: center; font-size: 10px;
+      }
+      .stage .detail { margin-left: auto; font-size: 10.5px; color: var(--muted); font-family: "JetBrains Mono", monospace; max-width: 320px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .stage.active { color: var(--text-strong); }
+      .stage.active .dot { border-color: rgba(59, 91, 219, 0.55); background: #eef2fd; color: var(--accent); animation: spin 1.4s linear infinite; }
+      .stage.done { color: #0f6b3c; }
+      .stage.done .dot { border-color: rgba(23, 138, 76, 0.45); background: rgba(23, 138, 76, 0.1); color: var(--ok); }
+      .stage.failed { color: #a52d24; }
+      .stage.failed .dot { border-color: rgba(194, 57, 47, 0.45); background: rgba(194, 57, 47, 0.1); color: var(--bad); }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .bar { height: 4px; border-radius: 2px; background: var(--panel-3); overflow: hidden; margin: 15px 0 12px; }
+      .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 280ms ease; }
+      .log {
+        flex: 1; min-height: 46px; overflow: hidden; font-family: "JetBrains Mono", monospace;
+        font-size: 10.5px; color: var(--muted); line-height: 1.5; white-space: pre-wrap;
+        border-top: 1px solid var(--line); padding-top: 9px;
+      }
+      .error { color: #a52d24; font-size: 11.5px; margin-top: 8px; }
+      .foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
+      .foot span { font-size: 10px; color: var(--muted-2); font-family: "JetBrains Mono", monospace; }
+      .actions { display: none; gap: 8px; -webkit-app-region: no-drag; }
+      .actions.show { display: flex; }
+      button {
+        border: 1px solid var(--line); background: var(--panel); color: var(--text);
+        border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer;
+      }
+      button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    </style>
+    <script src="splash-window.js" defer></script>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="head">
+        <div class="mark"><i></i><i></i><i></i></div>
+        <div>
+          <strong>FORGEMESH</strong>
+          <span>Client Manager</span>
+        </div>
+      </div>
+      <h1>Starting the local bridge</h1>
+      <div class="sub">Real startup stages, not a decorative progress bar.</div>
+      <div class="stages" id="stages"></div>
+      <div class="bar"><i id="bar"></i></div>
+      <div class="log" id="log">Preparing the Python daemon…</div>
+      <div class="error" id="error"></div>
+      <div class="foot">
+        <span id="version">Linux · local loopback only</span>
+        <div class="actions" id="actions">
+          <button id="retry">Retry</button>
+          <button class="primary" id="quit">Quit</button>
+        </div>
+      </div>
+    </div>
+    <script src="splash-renderer.js"></script>
+  </body>
+</html>

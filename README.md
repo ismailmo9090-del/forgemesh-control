@@ -23,7 +23,8 @@ no root required to install or run.
 | FastAPI + WebSocket local API with token auth | complete |
 | AI layer (Ollama local-first, OpenAI-compatible opt-in) | implemented and unit-tested; **not verified against a live model on this machine** (Ollama not installed here) |
 | Provider adapters (ChatGPT, Claude, Kimi, DeepSeek, Grok, Perplexity, Gemini, Sarvam Indus) | implemented; DeepSeek, ChatGPT, Gemini and Sarvam Indus validated live (prompts submitted and answers extracted through their web UIs); Claude, Kimi, Grok and Perplexity not yet validated live |
-| Tests | 354 headless unit/integration tests, all passing; 6 real-Chrome tests marked `browser` |
+| Tests | 379 headless unit/integration tests, all passing; 6 real-Chrome tests marked `browser` |
+| Linux Client Manager (worker desktop app) | pairs, supervises the worker loop, installs and signs in to OpenCode/Qoder locally, review/approval screens; AppImage and `.deb` build verified, packaged bridge launched headless, UI evidence in `docs/evidence/client-manager/` |
 | systemd packaging | unit file and docs provided; not auto-installed |
 
 ## Requirements
@@ -333,6 +334,29 @@ WebSockets are unaffected). The URL is publicly reachable: the control token
 still protects every route, so keep the URL private. A new pairing code is
 needed after each tunnel restart.
 
+## Worker desktop app (Linux Client Manager)
+
+Step 4 above is also available as a GUI. `client/` is an Electron app for the
+worker/output laptop: it pairs with the server using a single-use code,
+supervises the worker loop, installs and signs in to OpenCode/Qoder locally, and
+hosts the review, approval, delivery and artifact screens.
+
+```bash
+bash client/build-client.sh
+sudo apt install ./client/desktop/release/forgemesh-client-manager_0.1.4_amd64.deb
+```
+
+The package installs a private Python runtime in `/opt/forgemesh-client` and
+post-install downloads the bridge's dependencies (the browser runtime is not
+needed on a worker). The app stores the worker token in the Secret Service with
+a `0600` file fallback, listens only on `127.0.0.1` behind a random bearer
+token, and refuses plain HTTP to a non-loopback server unless the hotspot switch
+is explicitly acknowledged. Sign-in runs in a PTY inside the GUI; MFA, CAPTCHA
+and provider consent stop for a human and are never bypassed.
+
+See [`client/README.md`](client/README.md) for the architecture, packaging
+details, security posture, tests and known limits.
+
 ## Documentation
 
 | File | Covers |
@@ -345,6 +369,7 @@ needed after each tunnel restart.
 | [`docs/SECURITY.md`](docs/SECURITY.md) | threat model, redaction rules, containment, fair-use limits |
 | [`docs/UBUNTU_DEPLOYMENT.md`](docs/UBUNTU_DEPLOYMENT.md) | desktop/headless install, systemd unit, upgrades, troubleshooting |
 | [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) | methodology, measured numbers, their limits |
+| [`client/README.md`](client/README.md) | Linux Client Manager desktop app: architecture, packaging, security, tests |
 
 ## Known limitations
 

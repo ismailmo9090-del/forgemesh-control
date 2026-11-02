@@ -1,0 +1,83 @@
+{
+  "name": "forgemesh-client-manager",
+  "productName": "ForgeMesh Client Manager",
+  "version": "0.1.4",
+  "private": true,
+  "description": "Linux worker/output-laptop desktop app for ForgeMesh",
+  "homepage": "https://github.com/ismailmo9090-del/forgemesh-control",
+  "author": {
+    "name": "ForgeMesh contributors",
+    "email": "maintainers@forgemesh.invalid"
+  },
+  "desktopName": "forgemesh-client-manager",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron . --ozone-platform-hint=auto",
+    "start:nosandbox": "electron . --ozone-platform-hint=auto --no-sandbox",
+    "start:capture": "FMCM_CAPTURE_DIR=./captures electron . --ozone-platform-hint=auto",
+    "dist": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^45.2.1",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "ai.forgemesh.client",
+    "productName": "ForgeMesh Client Manager",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "splash.html",
+      "splash.js",
+      "splash-renderer.js",
+      "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/dist",
+        "to": "client-frontend"
+      },
+      {
+        "from": "../../src",
+        "to": "backend-src"
+      },
+      {
+        "from": "../../pyproject.toml",
+        "to": "backend/pyproject.toml"
+      },
+      {
+        "from": "../../packaging/launcher/fmw",
+        "to": "backend/fmw"
+      },
+      {
+        "from": "../requirements-client.txt",
+        "to": "client-requirements.txt"
+      }
+    ],
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Development",
+      "executableName": "forgemesh-client-manager",
+      "syncDesktopName": true,
+      "icon": "assets/icon.png",
+      "synopsis": "ForgeMesh worker and output-laptop client",
+      "description": "Pairs this laptop with the ForgeMesh control server, supervises the worker loop, installs and signs in to OpenCode/Qoder locally, and hosts the approval and review screens."
+    },
+    "deb": {
+      "depends": [
+        "python3 (>= 3.11)",
+        "python3-venv",
+        "python3-pip",
+        "curl",
+        "ca-certificates",
+        "libnotify4"
+      ],
+      "afterInstall": "maintenance/after-install.sh",
+      "afterRemove": "maintenance/after-remove.sh"
+    }
+  }
+}
