@@ -91,6 +91,7 @@ write_wrapper "$STAGE/usr/bin/fmc" "forgemesh_control.main"
 
 install -m 0755 packaging/launcher/forgemesh-control "$STAGE/usr/bin/forgemesh-control"
 install -m 0755 packaging/launcher/fmw "$STAGE/usr/bin/fmw"
+install -m 0755 scripts/forgemesh.sh "$STAGE/usr/bin/forgemesh"
 
 # --- desktop integration -----------------------------------------------------
 install -m 0644 packaging/desktop/forgemesh-control.desktop \

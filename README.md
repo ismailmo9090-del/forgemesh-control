@@ -7,7 +7,7 @@ CLI and a token-authenticated local HTTP + WebSocket API, and records every
 action in a SQLite journal plus an append-only audit log. It is built to be a
 core component of a multi-agent system, not a thin Playwright wrapper.
 
-Version 0.1.2 · Python ≥ 3.11 · Ubuntu 26.04 tested (22.04+ expected) ·
+Version 0.1.3 · Python ≥ 3.11 · Ubuntu 26.04 tested (22.04+ expected) ·
 no root required to install or run.
 
 ## Status at a glance
@@ -68,7 +68,7 @@ one confirmation). Optional global command:
 ```bash
 (cd frontend && npm ci && npm run build)   # prebuilt dashboard is embedded
 bash packaging/build-deb.sh                # writes dist/forgemesh-control_<version>_all.deb
-sudo apt install ./dist/forgemesh-control_0.1.2_all.deb
+sudo apt install ./dist/forgemesh-control_0.1.3_all.deb
 ```
 
 The package installs the application to `/opt/forgemesh/app`, creates a private
@@ -77,6 +77,29 @@ step), and adds `fmb`, `fmc` and a **ForgeMesh Control Center** launcher that
 starts the server and opens the dashboard. Data stays in each user's
 `~/.local/share/forgemesh-*` directories. Optional user services live in
 `/usr/lib/systemd/user/` (`systemctl --user enable --now forgemesh-control`).
+
+### One command (install, update or launch)
+
+On a fresh machine:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ismailmo9090-del/forgemesh-control/main/scripts/forgemesh.sh | bash
+```
+
+The package also installs the same script as `forgemesh`, so later runs need no curl:
+
+```bash
+forgemesh              # install or update to the latest release, then launch
+forgemesh --run        # launch the installed version (no network, no changes)
+forgemesh --install    # install or update only
+forgemesh --reinstall  # reinstall even when the version is current
+forgemesh --dry-run    # show the plan, change nothing
+```
+
+It compares the installed package with the latest GitHub release, installs only
+when the package is missing or older, restarts a control server that is running
+an outdated version, then opens the dashboard. It uses `sudo` only for `apt` and
+never touches credentials.
 
 ## Run
 
