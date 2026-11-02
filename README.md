@@ -7,7 +7,7 @@ CLI and a token-authenticated local HTTP + WebSocket API, and records every
 action in a SQLite journal plus an append-only audit log. It is built to be a
 core component of a multi-agent system, not a thin Playwright wrapper.
 
-Version 0.1.1 · Python ≥ 3.11 · Ubuntu 26.04 tested (22.04+ expected) ·
+Version 0.1.2 · Python ≥ 3.11 · Ubuntu 26.04 tested (22.04+ expected) ·
 no root required to install or run.
 
 ## Status at a glance
@@ -68,7 +68,7 @@ one confirmation). Optional global command:
 ```bash
 (cd frontend && npm ci && npm run build)   # prebuilt dashboard is embedded
 bash packaging/build-deb.sh                # writes dist/forgemesh-control_<version>_all.deb
-sudo apt install ./dist/forgemesh-control_0.1.1_all.deb
+sudo apt install ./dist/forgemesh-control_0.1.2_all.deb
 ```
 
 The package installs the application to `/opt/forgemesh/app`, creates a private
