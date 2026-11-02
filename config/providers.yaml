@@ -1,0 +1,37 @@
+# Enabled browser providers and their entry points.
+# Selectors and interaction logic live in each adapter module
+# (src/forgemesh_browser/providers/<id>/adapter.py) so a layout change only
+# requires touching one file.
+providers:
+  chatgpt:
+    enabled: true
+    name: ChatGPT
+    url: https://chatgpt.com/
+  claude:
+    enabled: true
+    name: Claude
+    url: https://claude.ai/new
+  kimi:
+    enabled: true
+    name: Kimi
+    url: https://www.kimi.com/
+  deepseek:
+    enabled: true
+    name: DeepSeek
+    url: https://chat.deepseek.com/
+  grok:
+    enabled: true
+    name: Grok
+    url: https://grok.com/
+  perplexity:
+    enabled: true
+    name: Perplexity
+    url: https://www.perplexity.ai/
+  gemini:
+    enabled: true
+    name: Gemini
+    url: https://gemini.google.com/app
+  sarvam:
+    enabled: true
+    name: Sarvam Indus
+    url: https://indus.sarvam.ai/

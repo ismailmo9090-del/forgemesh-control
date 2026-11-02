@@ -1,0 +1,49 @@
+#!/bin/sh
+# Install the private virtual environment used by fmb/fmc.
+set -e
+
+APP_DIR=/opt/forgemesh/app
+VENV=/opt/forgemesh/venv
+
+if [ "$1" = "configure" ]; then
+    PYTHON=/usr/bin/python3
+
+    if [ ! -x "$VENV/bin/python" ]; then
+        echo "ForgeMesh: creating virtual environment in $VENV"
+        mkdir -p /opt/forgemesh
+        if ! "$PYTHON" -m venv "$VENV"; then
+            echo "ForgeMesh: python3 -m venv failed. Install python3-venv and retry." >&2
+            exit 1
+        fi
+    fi
+
+    if ! "$VENV/bin/python" -m pip --version >/dev/null 2>&1; then
+        "$VENV/bin/python" -m ensurepip --upgrade >/dev/null 2>&1 || true
+    fi
+
+    echo "ForgeMesh: installing Python dependencies (this needs internet access)"
+    if ! "$VENV/bin/python" -m pip install \
+        --disable-pip-version-check \
+        --no-warn-script-location \
+        --upgrade-strategy only-if-needed \
+        -r "$APP_DIR/requirements.txt"; then
+        echo "ForgeMesh: dependency installation failed." >&2
+        echo "ForgeMesh: check your network/proxy and run: dpkg --configure -a" >&2
+        exit 1
+    fi
+
+    if ! PYTHONPATH="$APP_DIR/src" "$VENV/bin/python" -c \
+        "import forgemesh_browser, forgemesh_control, uvicorn, fastapi, playwright" \
+        >/dev/null 2>&1; then
+        echo "ForgeMesh: installed modules failed to import." >&2
+        exit 1
+    fi
+
+    # scripts/setup_browser.sh and other repo-relative helpers expect .venv.
+    ln -sfn "$VENV" "$APP_DIR/.venv"
+
+    echo "ForgeMesh: done. Start with 'forgemesh-control' or 'fmc serve'."
+    echo "ForgeMesh: dashboard http://127.0.0.1:8787  (token: fmc token)"
+fi
+
+#DEBHELPER#

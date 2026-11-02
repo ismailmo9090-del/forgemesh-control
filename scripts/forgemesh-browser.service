@@ -1,0 +1,55 @@
+# Forgemesh Browser daemon (user service)
+#
+# Install:
+#   mkdir -p ~/.config/systemd/user
+#   cp scripts/forgemesh-browser.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now forgemesh-browser.service
+#   loginctl enable-linger $USER     # keep it running after logout / at boot
+#
+# Adjust ExecStart below to your project path. If the path contains a space,
+# create a space-free symlink instead of quoting:
+#   ln -s ~/projects/termeinal\ browser ~/.local/share/forgemesh-src
+#
+# Do NOT add ProtectHome/PrivateTmp/ProtectSystem=strict: the daemon must write
+# its own data directory and Chromium relies on /tmp for shared memory.
+
+[Unit]
+Description=ForgeMesh Browser local automation daemon
+Documentation=https://systemd.io/USER_SERVICES
+After=default.target
+
+[Service]
+Type=simple
+# Path-free symlink recommended; edit these two lines if you use the real path.
+WorkingDirectory=%h/.local/share/forgemesh-src
+ExecStart=%h/.local/share/forgemesh-src/.venv/bin/fmb serve
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=forgemesh-browser
+
+# Environment overrides win over settings.yaml. Keep real API keys in a 0600
+# EnvironmentFile, never in this unit file if it is ever shared.
+Environment=FMB_HEADLESS=true
+Environment=FMB_LOG_JSON=true
+Environment=FMB_API_HOST=127.0.0.1
+Environment=FMB_API_PORT=8765
+# EnvironmentFile=%h/.config/forgemesh-browser/openai.env
+
+# fmb serve exits if another daemon already answers /health, so use
+# on-failure (Restart=always would loop against that guard).
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+
+# One active Chromium profile measured roughly 1 GB RSS.
+MemoryHigh=3G
+MemoryMax=4G
+CPUQuota=400%
+LimitNOFILE=65536
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

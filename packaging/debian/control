@@ -1,0 +1,23 @@
+Source: forgemesh-control
+Section: web
+Priority: optional
+Maintainer: ForgeMesh contributors <maintainers@forgemesh.invalid>
+Homepage: https://github.com/ismailmo9090-del/forgemesh-control
+Package: forgemesh-control
+Version: 0.1.0
+Architecture: all
+Depends: python3 (>= 3.11), python3-venv, python3-pip, git, curl, xdg-utils
+Recommends: chromium | google-chrome-stable | chromium-browser
+Suggests: nodejs
+Description: ForgeMesh central control plane for browser-driven AI councils
+ ForgeMesh Control Center installs, verifies and orchestrates central coding
+ agents, projects, the AI Council and mesh workers. It talks to the ForgeMesh
+ Browser runtime (fmb) over HTTP and never stores cookies, passwords or session
+ tokens.
+ .
+ This package ships the control server (fmc), the browser runtime CLI (fmb),
+ the web dashboard, a desktop launcher and optional systemd user units.
+ .
+ Python dependencies are installed into a private virtual environment under
+ /opt/forgemesh/venv during package configuration; an internet connection is
+ required for that step.

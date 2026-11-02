@@ -1,0 +1,22 @@
+[Unit]
+Description=ForgeMesh Browser automation daemon
+Documentation=https://github.com/forgemesh/forgemesh-control
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/fmb serve
+Environment=FMB_HEADLESS=true
+Environment=FMB_LOG_JSON=true
+Environment=FMB_API_HOST=127.0.0.1
+Environment=FMB_API_PORT=8765
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+LimitNOFILE=65536
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

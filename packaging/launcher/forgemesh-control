@@ -1,0 +1,70 @@
+#!/bin/sh
+# ForgeMesh Control Center launcher.
+#
+# Starts the control server (and the browser daemon when possible) if they are
+# not already running, then opens the dashboard in the default browser with a
+# freshly minted session cookie.
+set -eu
+
+PORT="${FMC_PORT:-8787}"
+BASE="http://127.0.0.1:${PORT}"
+DATA="${FMC_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/forgemesh-control}"
+LOGS="${DATA}/logs"
+RUNTIME="${DATA}/runtime"
+TOKEN_FILE="${RUNTIME}/control_token"
+
+mkdir -p "$LOGS" "$RUNTIME"
+chmod 700 "$DATA" "$LOGS" "$RUNTIME" 2>/dev/null || true
+
+healthy() {
+    curl --silent --fail --max-time 2 "$1/health" >/dev/null 2>&1
+}
+
+wait_for() {
+    url="$1"
+    seconds="$2"
+    i=0
+    while [ "$i" -lt "$seconds" ]; do
+        if healthy "$url"; then
+            return 0
+        fi
+        i=$((i + 1))
+        sleep 1
+    done
+    return 1
+}
+
+if ! healthy "$BASE"; then
+    echo "Starting ForgeMesh control server on ${BASE} …"
+    setsid nohup /usr/bin/fmc serve \
+        >>"${LOGS}/launcher.log" 2>&1 </dev/null &
+    if ! wait_for "$BASE" 45; then
+        echo "The control server did not start. See ${LOGS}/launcher.log" >&2
+        exit 1
+    fi
+fi
+
+# Best effort: the dashboard works without it, but account status stays empty
+# until the browser runtime answers.
+if ! healthy "http://127.0.0.1:${FMB_API_PORT:-8765}"; then
+    FMB_HEADLESS=true setsid nohup /usr/bin/fmb serve \
+        >>"${LOGS}/browser-launcher.log" 2>&1 </dev/null &
+fi
+
+if [ ! -s "$TOKEN_FILE" ]; then
+    # First run: asking the server creates the token with mode 0600.
+    /usr/bin/fmc token >/dev/null 2>&1 || true
+fi
+
+TOKEN="$(cat "$TOKEN_FILE" 2>/dev/null || true)"
+if [ -z "$TOKEN" ]; then
+    echo "Control token missing at ${TOKEN_FILE}. Run: fmc token" >&2
+    exit 1
+fi
+
+if command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "${BASE}/auth/session?token=${TOKEN}" >/dev/null 2>&1 &
+else
+    echo "Open ${BASE}/auth/session?token=<token> in your browser."
+    echo "Token: ${TOKEN_FILE}"
+fi

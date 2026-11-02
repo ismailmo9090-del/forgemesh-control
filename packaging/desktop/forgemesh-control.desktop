@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=ForgeMesh Control Center
+GenericName=AI Control Center
+Comment=Central control plane for browser-driven AI councils and mesh workers
+Exec=forgemesh-control
+Icon=forgemesh-control
+Terminal=false
+Categories=Development;Network;
+Keywords=AI;agent;council;browser;automation;
+StartupNotify=true

@@ -1,0 +1,84 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "forgemesh-browser"
+version = "0.1.0"
+description = "Terminal-first, AI-ready browser automation runtime with isolated profiles and persistent sessions"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "ForgeMesh" }]
+keywords = ["browser", "automation", "playwright", "ai", "cli", "terminal"]
+classifiers = [
+    "Environment :: Console",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Internet :: WWW/HTTP :: Browsers",
+]
+dependencies = [
+    "typer>=0.15.1",
+    "rich>=13.9.4",
+    "playwright>=1.49.1",
+    "fastapi>=0.115.6",
+    "uvicorn>=0.34.0",
+    "websockets>=14.1",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "aiosqlite>=0.20.0",
+    "pydantic>=2.10.4",
+    "pydantic-settings>=2.7.0",
+    "pyyaml>=6.0.2",
+    "httpx>=0.28.1",
+    "pillow>=11.1.0",
+    "numpy>=2.2.0",
+    "python-multipart>=0.0.20",
+    "cryptography>=43.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.2",
+    "ruff>=0.17.3",
+]
+
+[project.scripts]
+fmb = "forgemesh_browser.main:app"
+fmc = "forgemesh_control.main:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/forgemesh_browser", "src/forgemesh_control"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-ra"
+markers = [
+    "browser: requires a working Chromium/Chrome installation",
+    "slow: long-running integration tests",
+    "integration: exercises a real external binary or service (git, a live HTTP server) instead of a mock",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI and Typer declare their parameter objects as argument defaults; that
+# is the documented idiom, not a mutable-default bug.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Body",
+    "fastapi.Form",
+    "fastapi.File",
+    "fastapi.Query",
+    "typer.Option",
+    "typer.Argument",
+]

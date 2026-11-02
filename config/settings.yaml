@@ -1,0 +1,30 @@
+# Default ForgeMesh Browser settings.
+# Environment variables (FMB_*) take precedence over this file.
+# An optional user override can be placed at:
+#   ~/.config/forgemesh-browser/settings.yaml
+
+default_profile: primary
+headless: true
+viewport_width: 1440
+viewport_height: 900
+max_contexts: 6
+navigation_timeout_ms: 45000
+action_timeout_ms: 15000
+download_max_bytes: 209715200
+upload_max_bytes: 104857600
+# "chrome" = system Google Chrome, "chromium" = Playwright build, null = auto-detect
+browser_channel: chrome
+# Hide Playwright automation markers so Google/other OAuth providers accept the
+# window for manual sign-in. Credentials, CAPTCHA and MFA are still yours to do.
+browser_stealth: true
+
+api_host: 127.0.0.1
+api_port: 8765
+
+# AI defaults. Local first; remote providers require explicit configuration.
+ai_provider: ollama
+ollama_host: http://127.0.0.1:11434
+ollama_model: llama3.1
+
+ocr_lang: eng
+log_level: INFO

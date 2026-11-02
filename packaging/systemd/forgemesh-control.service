@@ -1,0 +1,17 @@
+[Unit]
+Description=ForgeMesh Control Center server
+Documentation=https://github.com/forgemesh/forgemesh-control
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/fmc serve
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGTERM
+Environment=PYTHONUNBUFFERED=1
+# Expose to the LAN only behind a TLS reverse proxy and with FMC_ALLOW_REMOTE=true.
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Node / Electron build and dependency trees
+node_modules/
+desktop/node_modules/
+desktop/release/
+frontend/dist/
+
+# Test artifacts and local logs
+desktop/captures/
+*.log
+
+# Runtime data (never commit profiles, sessions, secrets or downloads)
+data/profiles/*
+!data/profiles/.gitkeep
+data/downloads/*
+!data/downloads/.gitkeep
+data/screenshots/*
+!data/screenshots/.gitkeep
+data/assets/*
+!data/assets/.gitkeep
+data/results/*
+!data/results/.gitkeep
+data/logs/*
+!data/logs/.gitkeep
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Local configuration / secrets
+.env
+config/settings.local.yaml
+api_token
+secrets.yaml
+vault.key
+secrets/vault.json
+secrets/vault.lock
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store

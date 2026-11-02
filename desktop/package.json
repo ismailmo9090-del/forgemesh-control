@@ -1,0 +1,53 @@
+{
+  "name": "forgemesh-control-center",
+  "productName": "ForgeMesh Control Center",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop shell for the ForgeMesh AI Multi-Agent Server Control Center",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "start:debug": "electron . --enable-logging",
+    "dist": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^45.2.1",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "ai.forgemesh.control",
+    "productName": "ForgeMesh Control Center",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "splash.html",
+      "splash.js",
+      "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/dist",
+        "to": "dashboard"
+      },
+      {
+        "from": "../src",
+        "to": "backend-src"
+      },
+      {
+        "from": "../pyproject.toml",
+        "to": "backend/pyproject.toml"
+      }
+    ],
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Development",
+      "icon": "assets/icon.png",
+      "synopsis": "Central server control plane for ForgeMesh",
+      "description": "Installs, verifies and orchestrates central coding agents, projects, the AI Council and mesh workers."
+    }
+  }
+}
