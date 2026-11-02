@@ -42,8 +42,29 @@ if [ "$1" = "configure" ]; then
     # scripts/setup_browser.sh and other repo-relative helpers expect .venv.
     ln -sfn "$VENV" "$APP_DIR/.venv"
 
-    echo "ForgeMesh: done. Start with 'forgemesh-control' or 'fmc serve'."
-    echo "ForgeMesh: dashboard http://127.0.0.1:8787  (token: fmc token)"
+    if [ ! -f "$APP_DIR/frontend/dist/index.html" ]; then
+        echo "ForgeMesh: dashboard files are missing from the package." >&2
+        exit 1
+    fi
+
+    CHROME=""
+    for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+        if command -v "$candidate" >/dev/null 2>&1; then
+            CHROME="$candidate"
+            break
+        fi
+    done
+
+    echo "ForgeMesh: done. Open 'ForgeMesh Control Center' from the app menu,"
+    echo "ForgeMesh: or run 'fmc serve' and visit http://127.0.0.1:8787"
+    echo "ForgeMesh: control token: fmc token"
+    if [ -n "$CHROME" ]; then
+        echo "ForgeMesh: browser engine detected: $CHROME"
+    else
+        echo "ForgeMesh: no Chrome/Chromium found yet. Install one before signing in:"
+        echo "ForgeMesh:   sudo apt install chromium"
+        echo "ForgeMesh:   or: /opt/forgemesh/app/scripts/setup_browser.sh --playwright"
+    fi
 fi
 
 #DEBHELPER#

@@ -43,7 +43,7 @@ returned, and an unavailable runtime is reported as unavailable.
 
 ## 3. First-run results measured on this machine (2026-11-01)
 
-Host: `mohd-ismail-Latitude-5400`, Ubuntu 26.04.1 LTS x86-64, Python 3.14.4 in
+Host: a laptop running Ubuntu 26.04.1 LTS x86-64, Python 3.14.4 in
 `.venv`, Chrome-based ForgeMesh Browser runtime reachable on 8765.
 
 A throwaway instance was started against an empty data directory
@@ -68,7 +68,7 @@ Real interactions beyond the wizard, all observed rather than asserted:
   (`Add credential → Select provider`), keyboard buttons moved the real
   selection, and cancelling produced
   `status=cancelled, exit_code=-15, detail="[ForgeMesh sent SIGTERM to
-  /home/mohd-ismail/.opencode/bin/opencode providers login]"` (session
+  ~/.opencode/bin/opencode providers login]"` (session
   `ath_abb1fc353ab4`). No credential was typed and no provider was selected.
 - Qoder's **Logout** button refuses instead of pretending: *"Qoder CLI has no
   logout command. An isolated account can be used, made active or removed from
