@@ -68,11 +68,13 @@ const STATUS_LABELS: Record<string, string> = {
 export function StatusChip({
   status,
   label,
-  tone
+  tone,
+  title
 }: {
   status: string;
   label?: string;
   tone?: "ok" | "warn" | "bad" | "muted" | "info";
+  title?: string;
 }) {
   const resolved =
     tone ||
@@ -85,7 +87,52 @@ export function StatusChip({
         : ["failed", "unavailable", "offline"].includes(status)
           ? "bad"
           : "muted");
-  return <span className={`chip chip-${resolved}`}>{label || STATUS_LABELS[status] || status}</span>;
+  return (
+    <span className={`chip chip-${resolved}`} title={title}>
+      {label || STATUS_LABELS[status] || status}
+    </span>
+  );
+}
+
+// "limited" covers two different things: a real CLI limitation, and an
+// installed agent whose functional prompt has simply not run yet. Only the
+// second one is labelled "unverified" so nobody reads it as a blocker.
+function awaitingFunctionalCheck(
+  status: string,
+  functional?: { attempted?: boolean; verified?: boolean }
+): boolean {
+  return status === "limited" && functional?.attempted === false;
+}
+
+export function availabilityText(
+  status: string,
+  functional?: { attempted?: boolean; verified?: boolean }
+): string {
+  return awaitingFunctionalCheck(status, functional)
+    ? "unverified"
+    : STATUS_LABELS[status] || status;
+}
+
+export function AvailabilityChip({
+  status,
+  functional
+}: {
+  status: string;
+  functional?: { attempted?: boolean; verified?: boolean };
+}) {
+  const unverified = awaitingFunctionalCheck(status, functional);
+  return (
+    <StatusChip
+      status={status}
+      tone={unverified ? "info" : undefined}
+      label={unverified ? "unverified" : undefined}
+      title={
+        unverified
+          ? "Installed and runnable. No real prompt has been verified yet; ForgeMesh still lets the Council use it and reports the CLI's own result."
+          : undefined
+      }
+    />
+  );
 }
 
 export function Card({

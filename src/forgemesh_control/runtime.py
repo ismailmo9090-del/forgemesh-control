@@ -96,6 +96,7 @@ class ControlRuntime:
         self.token = ""
         self.started_at: datetime | None = None
         self._setup_task: asyncio.Task[Any] | None = None
+        self._agent_verify_task: asyncio.Task[Any] | None = None
         self._stopping = False
 
     # ------------------------------------------------------------------- startup
@@ -119,10 +120,37 @@ class ControlRuntime:
             port=self.settings.port,
             pid=os.getpid(),
         )
+        setup_started = False
         if self.settings.auto_install_agents:
-            await self.maybe_start_first_run()
+            setup_started = await self.maybe_start_first_run()
+        if not setup_started:
+            # A version change or an older build can leave a working agent on
+            # "limited" with no functional prompt behind it. Run that prompt
+            # once in the background instead of making the operator click.
+            self._agent_verify_task = asyncio.create_task(self._verify_unchecked_agents())
         if self.settings.auto_queue_tasks:
             await self.scheduler.start_queue()
+
+    async def _verify_unchecked_agents(self) -> None:
+        try:
+            for agent in await self.agents.list_agents():
+                if not agent.get("installed") or not agent.get("enabled"):
+                    continue
+                if agent.get("availability") != "limited":
+                    continue
+                check = (agent.get("metadata") or {}).get("functional_check") or {}
+                if check.get("attempted") is True:
+                    continue
+                try:
+                    await self.agents.verify(agent["kind"], functional=True)
+                except Exception as exc:  # noqa: BLE001 - keep the last real state
+                    logger.warning(
+                        "Startup functional check failed for %s: %s", agent["kind"], exc
+                    )
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - startup must continue
+            logger.warning("Startup agent verification crashed: %s", exc)
 
     def _write_server_info(self) -> None:
         payload = {
@@ -150,6 +178,9 @@ class ControlRuntime:
                 await asyncio.wait_for(asyncio.shield(self._setup_task), timeout=10)
             except (TimeoutError, asyncio.CancelledError):
                 self._setup_task.cancel()
+        if self._agent_verify_task is not None and not self._agent_verify_task.done():
+            self._agent_verify_task.cancel()
+            await asyncio.gather(self._agent_verify_task, return_exceptions=True)
         with contextlib.suppress(Exception):
             await self.scheduler.shutdown()
         with contextlib.suppress(Exception):

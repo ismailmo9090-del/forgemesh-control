@@ -6,4 +6,4 @@ contract. This package owns orchestration, projects, the AI Council, workers and
 the dashboard API.
 """
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"

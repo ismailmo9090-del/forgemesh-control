@@ -23,7 +23,16 @@ import type {
 } from "./types";
 import { api, formatBytes, formatTime } from "./api";
 import { AgentCard } from "./components/AgentCard";
-import { Card, Empty, Modal, PROVIDER_META, Sparkline, StatusChip } from "./components/ui";
+import {
+  AvailabilityChip,
+  availabilityText,
+  Card,
+  Empty,
+  Modal,
+  PROVIDER_META,
+  Sparkline,
+  StatusChip
+} from "./components/ui";
 
 type Action = (kind: string, action: "install" | "verify" | "detect" | "reinstall") => void;
 
@@ -96,10 +105,13 @@ export function Overview({
                   <strong>{agent.display_name}</strong>
                   <small>
                     {agent.installed ? `v${agent.version || "?"}` : "not installed"} ·{" "}
-                    {agent.availability}
+                    {availabilityText(agent.availability, agent.metadata?.functional_check)}
                   </small>
                 </div>
-                <StatusChip status={agent.availability} />
+                <AvailabilityChip
+                  status={agent.availability}
+                  functional={agent.metadata?.functional_check}
+                />
               </div>
             ))}
           </div>
@@ -545,14 +557,9 @@ export function AgentDetail({
         </div>
         <div>
           <span>Availability</span>
-          <StatusChip
+          <AvailabilityChip
             status={agent.availability}
-            label={
-              agent.availability === "limited" &&
-              agent.metadata?.functional_check?.attempted === false
-                ? "unverified"
-                : undefined
-            }
+            functional={agent.metadata?.functional_check}
           />
         </div>
         <div>

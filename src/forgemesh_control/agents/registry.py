@@ -348,6 +348,10 @@ class CentralAgentRegistry:
             interface_ok = bool(capabilities.get("verified"))
             functional_ok = bool(functional_result.get("verified"))
             auth_required = bool(functional_result.get("auth_required"))
+            if functional and isinstance(functional_result, dict):
+                # Distinguish "never tested" from "tested and did not work" so
+                # startup does not repeat a prompt that already failed.
+                functional_result.setdefault("attempted", True)
 
             if interface_ok and functional_ok:
                 availability = "available"

@@ -274,6 +274,33 @@ async def test_hosted_login_streams_real_output_and_signs_in(env, monkeypatch) -
     assert "ABC-123" not in history[0]["tail"]
 
 
+@pytest.mark.skipif(not HAS_PTY, reason="interactive terminal auth needs a pty")
+async def test_default_sign_in_turns_limited_into_a_verified_agent(env, monkeypatch) -> None:
+    """A successful sign-in must not leave the agent parked on "limited"."""
+    monkeypatch.setenv("HOME", str(env.tmp_path))
+    view = await env.service.start_login("qoder")
+    assert view["status"] == "running"
+
+    deadline = time.time() + 20
+    while time.time() < deadline:
+        events = [event["type"] for event in await env.events.history(100)]
+        if "agent.auth.finished" in events:
+            break
+        await asyncio.sleep(0.05)
+    else:
+        raise AssertionError("the sign-in session never finished")
+
+    row: dict = {}
+    while time.time() < deadline:
+        row = await env.registry.get_agent("qoder")
+        if row.get("availability") == "available":
+            break
+        await asyncio.sleep(0.05)
+    assert row.get("availability") == "available", row.get("last_error")
+    check = (row.get("metadata") or {}).get("functional_check") or {}
+    assert check.get("verified") is True
+
+
 def test_stored_output_never_keeps_a_credential() -> None:
     """Durable storage is scrubbed; only the live terminal keeps the raw link."""
     from forgemesh_control.agent_auth import redact_output

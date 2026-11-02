@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { api, ApiError, formatTime } from "./api";
-import { Card, Empty, StatusChip } from "./components/ui";
+import { AvailabilityChip, Card, Empty, StatusChip } from "./components/ui";
 import { HostedTerminal } from "./HostedTerminal";
 import type {
   AgentAuthState,
@@ -239,7 +239,7 @@ function AgentConsole({ agent, onChanged }: { agent: AgentInfo; onChanged: () =>
         </div>
         <div>
           <span>Availability</span>
-          <StatusChip status={agent.availability} />
+          <AvailabilityChip status={agent.availability} functional={functional} />
           <small>
             {agent.enabled ? "enabled" : "disabled by operator"} ·{" "}
             {agent.os_supported ? `${String(meta.platform?.detail || "platform ok")}` : "unsupported platform"}

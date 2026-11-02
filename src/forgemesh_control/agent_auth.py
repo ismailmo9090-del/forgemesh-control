@@ -455,6 +455,7 @@ class AgentAuthService:
         self.registry = registry
         self._sessions: dict[str, TerminalSession] = {}
         self._by_kind: dict[str, str] = {}
+        self._background_verifies: dict[str, asyncio.Task[Any]] = {}
 
     # --------------------------------------------------------------------- common
     async def _agent_row(self, kind: str) -> dict[str, Any]:
@@ -644,10 +645,49 @@ class AgentAuthService:
         return session
 
     async def shutdown(self) -> None:
+        for task in list(self._background_verifies.values()):
+            task.cancel()
+        if self._background_verifies:
+            await asyncio.gather(
+                *self._background_verifies.values(), return_exceptions=True
+            )
         for session in list(self._sessions.values()):
             if session.status == "running":
                 with contextlib.suppress(Exception):
                     session.cancel()
+
+    def _schedule_functional_verify(self, kind: str) -> None:
+        """Turn a successful sign-in into a verified state without another click.
+
+        The status-only re-check after login cannot claim the agent works, which
+        leaves it "limited" even though it runs. The harmless real prompt is the
+        only honest way to reach "available" (or record a real CLI error), so it
+        runs in the background instead of blocking the login result.
+        """
+        existing = self._background_verifies.get(kind)
+        if existing is not None and not existing.done():
+            return
+        task = asyncio.create_task(self._background_verify(kind))
+        self._background_verifies[kind] = task
+
+        def _forget(done: asyncio.Task[Any], kind: str = kind) -> None:
+            if self._background_verifies.get(kind) is done:
+                self._background_verifies.pop(kind, None)
+
+        task.add_done_callback(_forget)
+
+    async def _background_verify(self, kind: str) -> None:
+        try:
+            row = await self.registry.verify(kind, functional=True)
+            logger.info(
+                "Post-login functional check for %s: %s",
+                kind,
+                row.get("availability"),
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - state stays as the last real check
+            logger.warning("Post-login functional check failed for %s: %s", kind, exc)
 
     # --------------------------------------------------------------- session exit
     async def _on_session_exit(self, session: TerminalSession) -> None:
@@ -702,6 +742,11 @@ class AgentAuthService:
             accounts=len([item for item in accounts if item["status"] == "signed_in"]),
             detail=detail,
         )
+        # A verify without an account reads the CLI's default config root, so
+        # only the default account can be auto-verified here. Isolated accounts
+        # keep their own sign-in result from sync_accounts().
+        if signed_in and "--config-dir" not in session.argv:
+            self._schedule_functional_verify(session.kind)
 
     async def _persist_session(
         self,

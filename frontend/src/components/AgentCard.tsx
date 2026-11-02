@@ -1,5 +1,5 @@
 import type { AgentInfo } from "../types";
-import { StatusChip } from "./ui";
+import { AvailabilityChip, StatusChip } from "./ui";
 
 const STEPS = ["Detect", "Download", "Install", "Configure", "Verify", "Ready"];
 
@@ -73,7 +73,10 @@ export function AgentCard({
         </div>
         <div>
           <span>Availability</span>
-          <StatusChip status={agent.availability} />
+          <AvailabilityChip
+            status={agent.availability}
+            functional={agent.metadata?.functional_check}
+          />
         </div>
       </div>
 
