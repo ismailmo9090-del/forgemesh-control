@@ -124,6 +124,23 @@ chmod 700 "$CONFIG_DIR"
 log "Checking browser availability"
 "$ROOT/scripts/setup_browser.sh" $([[ $WITH_PLAYWRIGHT -eq 1 ]] && echo --playwright)
 
+# --- dashboard --------------------------------------------------------------
+# frontend/dist is a build artifact and is not committed, so a fresh clone has
+# no dashboard until this runs. The control server serves it from that path.
+if [[ -f "$ROOT/frontend/dist/index.html" ]]; then
+    log "Using the existing dashboard build in frontend/dist"
+elif command -v npm >/dev/null 2>&1; then
+    log "Building the control dashboard (npm)"
+    if [[ ! -d "$ROOT/frontend/node_modules" ]]; then
+        (cd "$ROOT/frontend" && npm ci)
+    fi
+    (cd "$ROOT/frontend" && npm run build)
+else
+    warn "Node.js/npm not found; the dashboard will be unavailable (fmc still serves its API)."
+    warn "Install Node.js 18+ and run: (cd frontend && npm install && npm run build)"
+    warn "Or install the packaged build: sudo apt install ./forgemesh-control_<version>_all.deb"
+fi
+
 # --- validation -------------------------------------------------------------
 log "Validating the installation"
 "$VENV_PY" -c "import forgemesh_browser; print('forgemesh_browser', forgemesh_browser.__version__)"

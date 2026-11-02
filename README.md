@@ -35,6 +35,8 @@ no root required to install or run.
   `scripts/setup_browser.sh` reports and can install an alternative.
 - Optional: `tesseract-ocr` for `fmb ocr`, `ollama` for the AI commands,
   `curl` only for the API doc examples (`wget` and the CLI work without it).
+- Node.js 18+ and npm only to build the control dashboard from source; the
+  `.deb` already embeds it.
 
 ## Install
 
